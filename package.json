@@ -1,0 +1,37 @@
+{
+  "name": "cjs-module-lexer-playground",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "prepare": "husky install",
+    "lint": "tsc && eslint src/ --ext .ts,.tsx"
+  },
+  "dependencies": {
+    "cjs-module-lexer": "^1.2.2",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "devDependencies": {
+    "@types/react": "^18.0.18",
+    "@types/react-dom": "^18.0.6",
+    "@typescript-eslint/eslint-plugin": "^5.36.2",
+    "@typescript-eslint/parser": "^5.36.2",
+    "@vitejs/plugin-react": "^2.1.0",
+    "autoprefixer": "^10.4.8",
+    "eslint": "^8.23.0",
+    "eslint-plugin-import": "^2.26.0",
+    "eslint-plugin-prettier": "^4.2.1",
+    "husky": "^8.0.1",
+    "postcss": "^8.4.16",
+    "prettier": "^2.7.1",
+    "tailwindcss": "^3.1.8",
+    "typescript": "^4.8.3",
+    "vite": "^3.1.0",
+    "vite-plugin-fast-react-svg": "^0.3.0",
+    "vite-tsconfig-paths": "^3.5.0"
+  }
+}

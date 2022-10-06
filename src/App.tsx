@@ -1,8 +1,10 @@
 import { useDeferredValue, useEffect, useMemo, useState } from "react";
 
 import { init, parse } from "cjs-module-lexer";
+import { init as initRS, parse as parseRS } from "cjs-module-lexer-rs";
 
-import packageJson from "../node_modules/cjs-module-lexer/package.json";
+import cjsModuleLexerRsPackageJson from "../node_modules/cjs-module-lexer-rs/package.json";
+import cjsModuleLexerPackageJson from "../node_modules/cjs-module-lexer/package.json";
 
 const EXAMPLE_CODE = `
 module.exports.asdf = 'asdf';
@@ -28,17 +30,36 @@ const GithubIcon = () => {
 
 const urlCode = new URLSearchParams(location.search).get("code");
 
+const urlParser = new URLSearchParams(location.search).get("parser");
+
+const parsers = {
+  "cjs-module-lexer": {
+    pkgJson: cjsModuleLexerPackageJson,
+    parse,
+  },
+  "cjs-module-lexer-rs": {
+    pkgJson: cjsModuleLexerRsPackageJson,
+    parse: parseRS,
+  },
+};
+
 function App() {
   const [code, setCode] = useState(
-    urlCode ? atob(urlCode) : localStorage.getItem("code") ?? EXAMPLE_CODE
+    urlCode ? atob(urlCode) : localStorage.getItem("code") ?? EXAMPLE_CODE,
   );
 
   const deferredCode = useDeferredValue(code);
 
   const [lexerLoading, setLexerLoading] = useState(true);
 
+  const [parser, setParser] = useState(
+    urlParser || localStorage.getItem("parser") || "cjs-module-lexer-rs",
+  );
+
+  const [parseTime, setParseTime] = useState<number | undefined>(undefined);
+
   useEffect(() => {
-    init().then(() => setLexerLoading(false));
+    Promise.all([init(), initRS()]).then(() => setLexerLoading(false));
   }, []);
 
   const result = useMemo(() => {
@@ -47,16 +68,23 @@ function App() {
       return {};
     }
     try {
-      return parse(deferredCode ?? ";");
+      const t1 = performance.now();
+      const r = parsers[parser as keyof typeof parsers].parse(
+        deferredCode ?? ";",
+        "playground.js",
+      );
+      setParseTime(performance.now() - t1);
+      return r;
     } catch (e) {
       return String(e);
     }
-  }, [deferredCode, lexerLoading]);
+  }, [deferredCode, lexerLoading, parser]);
 
   return (
     <div className="h-screen bg-gray-800 text-white flex flex-col">
-      <div className="p-4 bg-gray-900 text-lg flex gap-x-4">
-        <div>CJS Module Lexer Playground</div>{" "}
+      <div className="p-4 bg-gray-900 text-lg flex gap-x-4 flex-wrap">
+        <div className="w-full sm:w-[initial]">CJS Module Lexer Playground</div>
+
         <button className="text-gray-400" onClick={() => setCode(EXAMPLE_CODE)}>
           Reset
         </button>
@@ -64,36 +92,47 @@ function App() {
           className="text-gray-400"
           onClick={() => {
             navigator.clipboard.writeText(
-              location.origin + `?code=${btoa(code)}`
+              location.origin + `?code=${btoa(code)}&parser=${parser}`,
             );
           }}
         >
           Share
         </button>
         <div className="flex-1" />
-        <div className="text-gray-400">
-          <a
-            href={`https://www.npmjs.com/package/${packageJson.name}/v/${packageJson.version}`}
-            target="_blank"
+        {parseTime != null && (
+          <div className="text-gray-600">{parseTime.toPrecision(3)}ms</div>
+        )}
+        <div className="text-gray-400 flex-1 sm:flex-initial mt-[0.5rem] sm:mt-0">
+          <select
+            className="p-1 min-w-full"
+            value={parser}
+            onChange={(e) => {
+              setParser(e.target.value);
+            }}
           >
-            {packageJson.name}@{packageJson.version}
-          </a>
+            {Object.entries(parsers).map(([name, parser]) => (
+              <option value={name} key={name}>
+                {name}@{parser.pkgJson.version}
+              </option>
+            ))}
+          </select>
         </div>
         <a
+          className="mt-[0.6rem] sm:mt-0"
           href={`https://github.com/hanayashiki/cjs-module-lexer-playground`}
           target="_blank"
         >
           <GithubIcon />
         </a>
       </div>
-      <div className="flex flex-1">
+      <div className="flex flex-1 shrink min-h-0">
         <textarea
           className="flex-1 font-mono bg-transparent p-4"
           value={code}
           onChange={(e) => setCode(e.target.value)}
           placeholder="Copy or input some CommonJS here..."
         />
-        <div className="flex-1 font-mono whitespace-pre p-4">
+        <div className="flex-1 font-mono whitespace-pre p-4 overflow-scroll">
           {lexerLoading ? "Loading..." : JSON.stringify(result, null, 2)}
         </div>
       </div>
